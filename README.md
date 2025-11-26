@@ -190,7 +190,7 @@ int found_index = -1;
 mutex mtx; // Mutex to protect the shared variable 'found_index'
 
 void search_element(int start_index) {
-    int end_index = start_index + (SIZE / 4);
+    int end_index = start_index + 25;
     
     for (int i = start_index; i < end_index; i++) {
         if (data_array[i] == 50) {
@@ -212,7 +212,7 @@ int main() {
 
     // Create 4 threads, each searching a quarter of the array
     for (int i = 0; i < 4; i++) {
-        int start = i * (SIZE / 4);
+        int start = i * 25;
         threads[i] = thread(search_element, start);
     }
 
@@ -242,49 +242,57 @@ int main() {
 ```cpp
 #include <bits/stdc++.h>
 #include <thread>
+
 using namespace std;
 int arr[100], temp[100];
 
-void merge(int l, int m, int r) {
-    int i=l, j=m+1, k=l;
-    while(i<=m && j<=r) {
-        if(arr[i] < arr[j]) temp[k++] = arr[i++];
-        else temp[k++] = arr[j++];
+void merge(int l, int m, int r){
+    int i=l;
+    int j=m+1;
+    int k=l;
+  while (i <= m && j <= r) {
+        if(arr[i]< arr[j]) temp[k++]=arr[i++];
+    else temp[k++]=arr[j++];
     }
-    while(i<=m) temp[k++] = arr[i++];
-    while(j<=r) temp[k++] = arr[j++];
-    for(i=l; i<=r; i++) arr[i] = temp[i];
-}
+    while((i<=m) ) temp[k++]=arr[i++];
+     while( j<=r) temp[k++]=arr[j++];
 
-void sort_chunk(int l, int r) {
-    if(l < r) {
-        int m = (l+r)/2;
-        sort_chunk(l, m);
-        sort_chunk(m+1, r);
-        merge(l, m, r);
+    for(int i=l; i<= r; i++) arr[i]=temp[i];
+    
+}
+void merge_sort(int l, int r){
+    if(l<r){
+        int mid=( l+r )/2;
+        merge_sort(l,mid);
+        merge_sort(mid+1,r);
+        merge(l,mid,r);
+        
     }
+    
 }
 
 void worker(int part) {
     int l = part * 25;
-    sort_chunk(l, l+24);
+    merge_sort(l, l+24);
 }
-
 int main() {
-    for(int i=0; i<100; i++) arr[i] = rand()%1000;
-    thread t[4];
-    for(int i=0; i<4; i++) t[i] = thread(worker, i);
-    for(int i=0; i<4; i++) t[i].join();
+	// your code goes here
+	for(int i=0; i<100; i++) arr[i] = rand()%1000;
+		
+		
+	thread t[4];
+	for(int i=0; i<4; i++) t[i]=thread(worker,i);
+	for(int  i=0; i<4; i++) t[i].join();
+	
+	merge(0,24,49);
+	merge(50,74,99);
+	merge(0,49,99); 
+	
+	for(int i=0; i<100; i++) std::cout << arr[i] << " ";
+	cout<< std::endl;
 
-    merge(0, 24, 49);
-    merge(50, 74, 99);
-    merge(0, 49, 99);
-
-    cout<<"Sorted first 5: ";
-    for(int i=0; i<5; i++) cout<<arr[i]<<" ";
-    cout<<endl;
-    return 0;
 }
+
 ```
 
 -----
