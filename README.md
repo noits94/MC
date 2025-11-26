@@ -340,37 +340,49 @@ int main() {
 #include <mutex>
 #include <condition_variable>
 using namespace std;
+
 int bread = 0;
-mutex mtx;
+mutex m;
 condition_variable cv;
 
 void baker() {
-    while(1) {
-        unique_lock<mutex> lk(mtx);
-        while(bread >= 5) cv.wait(lk);
-        bread++;
-        cout<<"Made bread. Total: "<<bread<<endl;
+    while (true) {
+        unique_lock<mutex> lock(m);
+
+        cv.wait(lock, [] { return bread < 5; });   // wait until space is available
+
+        ++bread;
+        cout << "Made bread. Total: " << bread << endl;
+
         cv.notify_one();
+        lock.unlock();
+
         this_thread::sleep_for(chrono::seconds(1));
     }
 }
 
 void eater() {
-    while(1) {
-        unique_lock<mutex> lk(mtx);
-        while(bread <= 0) cv.wait(lk);
-        bread--;
-        cout<<"Ate bread. Total: "<<bread<<endl;
+    while (true) {
+        unique_lock<mutex> lock(m);
+
+        cv.wait(lock, [] { return bread > 0; });   // wait until bread exists
+
+        --bread;
+        cout << "Ate bread. Total: " << bread << endl;
+
         cv.notify_one();
+        lock.unlock();
+
         this_thread::sleep_for(chrono::seconds(2));
     }
 }
 
 int main() {
     thread t1(baker), t2(eater);
-    t1.join(); t2.join();
-    return 0;
+    t1.join();
+    t2.join();
 }
+
 ```
 
 -----
@@ -444,37 +456,41 @@ int main() {
 #include <bits/stdc++.h>
 #include <thread>
 #include <mutex>
+#include <chrono>
+
 using namespace std;
+
 mutex m1, m2;
 
-void worker(int id) {
-    // Simplified for lab: Try Lock logic
-    if(id==0) {
-        m1.lock();
-        this_thread::sleep_for(chrono::milliseconds(100));
-        if(m2.try_lock()) {
-            cout<<"T0 got both\n"; m2.unlock();
-        } else {
-            cout<<"T0 failed, drop m1\n";
-        }
-        m1.unlock();
-    } else {
-        m2.lock();
-        this_thread::sleep_for(chrono::milliseconds(100));
-        if(m1.try_lock()) {
-            cout<<"T1 got both\n"; m1.unlock();
-        } else {
-            cout<<"T1 failed, drop m2\n";
-        }
-        m2.unlock();
+void thread_function(int id) {
+    mutex &first  = (id == 0 ? m1 : m2);
+    mutex &second = (id == 0 ? m2 : m1);
+
+    first.lock();
+    this_thread::sleep_for(chrono::seconds(1));
+
+    cout << "Thread " << id << ": Waiting for second lock..." << endl;
+
+    if (second.try_lock()) {
+        cout << "Thread " << id << ": Acquired both locks, doing work..." << endl;
+        this_thread::sleep_for(chrono::seconds(1));
+        second.unlock();
+    } 
+    else {
+        cout << "Thread " << id << ": Failed to acquire second lock, backing off." << endl;
     }
+
+    first.unlock();
 }
 
 int main() {
-    thread t1(worker, 0), t2(worker, 1);
-    t1.join(); t2.join();
-    return 0;
+    thread t1(thread_function, 0);
+    thread t2(thread_function, 1);
+
+    t1.join();
+    t2.join();
 }
+
 ```
 
 -----
