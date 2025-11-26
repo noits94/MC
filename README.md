@@ -182,27 +182,52 @@ int main() {
 #include <thread>
 #include <mutex>
 using namespace std;
-int arr[100], found = -1;
-mutex mtx;
 
-void search(int start) {
-    for(int i=start; i<start+25; i++) {
-        if(arr[i] == 50) {
-            mtx.lock();
-            found = i;
-            mtx.unlock();
+#define SIZE 100
+
+int data_array[SIZE];
+int found_index = -1;
+mutex mtx; // Mutex to protect the shared variable 'found_index'
+
+void search_element(int start_index) {
+    int end_index = start_index + (SIZE / 4);
+    
+    for (int i = start_index; i < end_index; i++) {
+        if (data_array[i] == 50) {
+            mtx.lock();      // Lock before updating shared variable
+            found_index = i;
+            mtx.unlock();    // Unlock after updating
+            return; 
         }
     }
 }
 
 int main() {
-    for(int i=0; i<100; i++) arr[i] = i+1;
-    thread t[4];
-    for(int i=0; i<4; i++) t[i] = thread(search, i*25);
-    for(int i=0; i<4; i++) t[i].join();
+    // Initialize array with values 1 to 100
+    for (int i = 0; i < SIZE; i++) {
+        data_array[i] = i + 1;
+    }
 
-    if(found != -1) cout<<"Found at: "<<found<<endl;
-    else cout<<"Not found"<<endl;
+    thread threads[4];
+
+    // Create 4 threads, each searching a quarter of the array
+    for (int i = 0; i < 4; i++) {
+        int start = i * (SIZE / 4);
+        threads[i] = thread(search_element, start);
+    }
+
+    // Join all threads
+    for (int i = 0; i < 4; i++) {
+        threads[i].join();
+    }
+
+    // Print result
+    if (found_index != -1) {
+        cout << "Number 50 found at index: " << found_index << endl;
+    } else {
+        cout << "Number 50 not found." << endl;
+    }
+
     return 0;
 }
 ```
